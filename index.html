@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeoWeb Studio — Замовлення сайтів та дизайну</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap');
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    body {
+      background-color: #031109;
+      color: #e6fff0;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* Неонове світіння та скляний ефект */
+    .neon-card {
+      background: rgba(7, 29, 17, 0.78);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .neon-card:hover:not(.locked-card) {
+      transform: translateY(-6px);
+      border-color: #10b981;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.35), inset 0 0 12px rgba(16, 185, 129, 0.1);
+    }
+
+    .neon-text {
+      text-shadow: 0 0 12px rgba(16, 185, 129, 0.7);
+    }
+
+    .neon-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.45);
+      transition: all 0.2s ease;
+    }
+
+    .neon-btn:hover {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+      box-shadow: 0 0 25px rgba(52, 211, 153, 0.75);
+      transform: scale(1.02);
+    }
+
+    .neon-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Заблокована картка Бета-сервера */
+    .locked-card {
+      background: rgba(25, 10, 14, 0.75);
+      border: 1px dashed rgba(239, 68, 68, 0.45);
+      opacity: 0.82;
+      cursor: not-allowed;
+    }
+
+    .locked-card:hover {
+      border-color: #ef4444;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+    }
+
+    /* Анімація тряски при помилці */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .shake-anim {
+      animation: shake 0.4s ease-in-out;
+    }
+
+    /* Анімація танцюючої капібари */
+    @keyframes capyDance {
+      0%, 100% { transform: translateY(0) rotate(-4deg) scaleY(1); }
+      25% { transform: translateY(-12px) rotate(0deg) scaleY(1.05); }
+      50% { transform: translateY(0) rotate(4deg) scaleY(0.96); }
+      75% { transform: translateY(-10px) rotate(0deg) scaleY(1.04); }
+    }
+
+    @keyframes noteFloat {
+      0% { opacity: 0; transform: translateY(0) scale(0.7); }
+      50% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(-35px) translateX(12px) scale(1.2); }
+    }
+
+    .capybara-dance {
+      animation: capyDance 0.95s infinite ease-in-out;
+      transform-origin: bottom center;
+    }
+
+    .music-note-1 {
+      animation: noteFloat 2s infinite ease-out;
+    }
+    .music-note-2 {
+      animation: noteFloat 2.4s infinite ease-out 0.8s;
+    }
+
+    /* Сканлайн поверх екрану */
+    .scanline {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0) 50%,
+        rgba(16, 185, 129, 0.03) 50%,
+        rgba(16, 185, 129, 0.03)
+      );
+      background-size: 100% 4px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Скролбар */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #031109;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #065f46;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #10b981;
+    }
+  </style>
+</head>
+<body class="relative selection:bg-emerald-500 selection:text-black">
+
+  <!-- Сніговий фон (Canvas) -->
+  <canvas id="snowCanvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+  <div class="scanline"></div>
+
+  <!-- Зимові ялинки та танцююча капібара на задньому плані -->
+  <div class="fixed bottom-0 left-0 right-0 pointer-events-none z-0 overflow-hidden select-none">
+    <!-- Засніжені ялинки зліва -->
+    <svg class="absolute bottom-0 left-2 w-44 h-44 opacity-35 text-emerald-950" viewBox="0 0 200 200">
+      <polygon points="50,30 15,110 85,110" fill="#063720"/>
+      <polygon points="50,70 10,160 90,160" fill="#042917"/>
+      <polygon points="50,30 33,70 67,70" fill="#d1fae5" opacity="0.7"/>
+      <polygon points="130,50 95,140 165,140" fill="#064e3b"/>
+      <polygon points="130,90 85,190 175,190" fill="#022c22"/>
+      <polygon points="130,50 112,95 148,95" fill="#d1fae5" opacity="0.7"/>
+    </svg>
+
+    <!-- Танцююча зимова капібара справа -->
+    <div class="fixed bottom-3 right-5 z-0 opacity-85 hidden sm:block">
+      <div class="relative w-32 h-32">
+        <!-- Музичні ноти -->
+        <span class="music-note-1 absolute -top-2 left-2 text-emerald-400 font-bold text-lg">♪</span>
+        <span class="music-note-2 absolute -top-4 right-4 text-emerald-300 font-bold text-xl">♫</span>
+
+        <!-- SVG Капібара -->
+        <svg class="capybara-dance w-full h-full drop-shadow-[0_0_12px_rgba(16,185,129,0.5)]" viewBox="0 0 160 160">
+          <!-- Тіло -->
+          <ellipse cx="80" cy="108" rx="42" ry="34" fill="#8d5b3c" stroke="#3e2414" stroke-width="3"/>
+          <!-- Лапки -->
+          <rect x="48" y="130" width="14" height="18" rx="7" fill="#6b4228" stroke="#3e2414" stroke-width="2.5"/>
+          <rect x="98" y="130" width="14" height="18" rx="7" fill="#6b4228" stroke="#3e2414" stroke-width="2.5"/>
+          <!-- Передні лапки в танці -->
+          <rect x="34" y="95" width="22" height="11" rx="5.5" transform="rotate(-25 34 95)" fill="#7a4c30" stroke="#3e2414" stroke-width="2.5"/>
+          <rect x="104" y="90" width="22" height="11" rx="5.5" transform="rotate(25 104 90)" fill="#7a4c30" stroke="#3e2414" stroke-width="2.5"/>
+          <!-- Голова -->
+          <rect x="48" y="42" width="64" height="48" rx="22" fill="#9c6644" stroke="#3e2414" stroke-width="3"/>
+          <!-- Вушка -->
+          <circle cx="54" cy="46" r="8" fill="#6b4228" stroke="#3e2414" stroke-width="2.5"/>
+          <circle cx="106" cy="46" r="8" fill="#6b4228" stroke="#3e2414" stroke-width="2.5"/>
+          <!-- Мордочка і ніс -->
+          <ellipse cx="80" cy="72" rx="18" ry="12" fill="#7a4c30"/>
+          <circle cx="74" cy="68" r="2.5" fill="#2b170b"/>
+          <circle cx="86" cy="68" r="2.5" fill="#2b170b"/>
+          <path d="M74 76 Q80 81 86 76" stroke="#2b170b" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <!-- Неонові кібер-окуляри -->
+          <rect x="54" y="53" width="22" height="11" rx="3" fill="#022c22" stroke="#10b981" stroke-width="2.5"/>
+          <rect x="84" y="53" width="22" height="11" rx="3" fill="#022c22" stroke="#10b981" stroke-width="2.5"/>
+          <line x1="76" y1="57" x2="84" y2="57" stroke="#10b981" stroke-width="2.5"/>
+          <line x1="58" y1="56" x2="66" y2="61" stroke="#6ee7b7" stroke-width="1.5"/>
+          <line x1="88" y1="56" x2="96" y2="61" stroke="#6ee7b7" stroke-width="1.5"/>
+          <!-- Зимова новорічна шапочка -->
+          <path d="M56 44 Q80 14 104 44 Z" fill="#dc2626" stroke="#3e2414" stroke-width="2.5"/>
+          <rect x="53" y="39" width="54" height="9" rx="4.5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+          <circle cx="80" cy="18" r="7" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+          <!-- Зелений шарфик -->
+          <rect x="54" y="86" width="52" height="10" rx="5" fill="#10b981" stroke="#064e3b" stroke-width="2"/>
+          <rect x="90" y="92" width="11" height="22" rx="4" fill="#059669" stroke="#064e3b" stroke-width="2"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Навігаційна шапка -->
+  <header class="sticky top-0 z-30 bg-[#031109]/85 backdrop-blur-md border-b border-emerald-500/20">
+    <div class="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+          <i class="fa-solid fa-code text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-black tracking-wider text-white neon-text">NEOWEB <span class="text-emerald-400">SHOP</span></h1>
+          <p class="text-[11px] text-emerald-300/70">Авто-прийом заявок у Discord</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <!-- Кнопка Адмін-панелі (замочок) -->
+        <button onclick="openAdminModal()" title="Панель власника (Заявки)" class="w-10 h-10 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/80 border border-emerald-500/30 flex items-center justify-center text-emerald-400 transition cursor-pointer">
+          <i class="fa-solid fa-lock text-sm"></i>
+        </button>
+
+        <!-- Кнопка звуку -->
+        <button id="soundToggleBtn" onclick="toggleSound()" title="Увімкнути/Вимкнути звук" class="w-10 h-10 rounded-xl bg-emerald-950/70 hover:bg-emerald-900/80 border border-emerald-500/30 flex items-center justify-center text-emerald-400 transition cursor-pointer">
+          <i id="soundIcon" class="fa-solid fa-volume-high text-sm"></i>
+        </button>
+
+        <!-- Кнопка Кошика -->
+        <button onclick="toggleCart(true)" class="relative px-4 py-2.5 rounded-xl neon-btn text-black font-bold text-sm flex items-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span class="hidden sm:inline">Кошик</span>
+          <span id="cartBadge" class="bg-black text-emerald-400 text-xs font-black px-2 py-0.5 rounded-full">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Головний контент -->
+  <main class="relative z-10 max-w-6xl mx-auto px-4 py-10 pb-28">
+    <!-- Привітальний банер -->
+    <div class="text-center max-w-2xl mx-auto mb-12">
+      <span class="inline-block px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs font-bold uppercase tracking-widest mb-3">
+        ❄️ Зимовий сезон • Швидка розробка
+      </span>
+      <h2 class="text-3xl sm:text-5xl font-black text-white mb-4 leading-tight">
+        Замов свій ідеальний <span class="text-emerald-400 neon-text">сайт або аву</span>
+      </h2>
+      <p class="text-emerald-100/75 text-sm sm:text-base">
+        Додавай потрібні послуги у кошик, вказуй свій нік у Discord — і заявка миттєво прилетить до мене в канал!
+      </p>
+    </div>
+
+    <!-- Сітка тарифів сайтів -->
+    <div class="mb-6 flex items-center gap-2">
+      <i class="fa-solid fa-globe text-emerald-400"></i>
+      <h3 class="text-xl font-bold text-white">Розробка сайтів</h3>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      
+      <!-- 1. Легенький сайт — 40 грн -->
+      <div class="neon-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-start mb-4">
+            <span class="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold">СТАРТ</span>
+            <span class="text-2xl font-black text-emerald-400">40 грн</span>
+          </div>
+          <h4 class="text-xl font-bold text-white mb-2">Легенький сайт</h4>
+          <p class="text-sm text-emerald-100/70 mb-4">
+            Швидка односторінкова візитка або міні-сайт під твої базові задачі.
+          </p>
+          <ul class="text-xs text-emerald-200/80 space-y-2 mb-6">
+            <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>1 акуратна сторінка</li>
+            <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Адаптація під телефон</li>
+            <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Швидке виконання</li>
+          </ul>
+        </div>
+        <button onclick="addToCart('light-site', 'Легенький сайт', 40, 'Базова сторінка-візитка')" class="w-full py-3 rounded-xl neon-btn text-black font-bold text-sm cursor-pointer">
+          <i class="fa-solid fa-cart-plus mr-1.5"></i> В кошик
+        </button>
+      </div>
+
+      <!-- 2. Простий сайт — 139 грн -->
+      <div class="neon-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-start mb-4">
+            <span class="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold">БАЗОВИЙ</span>
+            <span class="text-2xl font-black text-emerald-400">139 грн</span>
+          </div>
+          <h4 class="text-xl font-bold text-white mb-2">Простий сайт</h4>
+          <p class="text-sm text-emerald-100/70 mb-4">
+            Повноцінний лендінг із приємним дизайном, кнопками та секціями.
+          </p>
+          <ul class="text-xs text-emerald-200/80 space-y-2 mb-6">
+            <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Кілька інформаційних блоків</li>
+            <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Плавні анімації та іконки</li>
+            <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Підключення твоїх посилань</li>
+          </ul>
+        </div>
+        <button onclick="addToCart('simple-site', 'Простий сайт', 139, 'Повноцінний лендінг з анімаціями')" class="w-full py-3 rounded-xl neon-btn text-black font-bold text-sm cursor-pointer">
+          <i class="fa-solid fa-cart-plus mr-1.5"></i> В кошик
+        </button>
+      </div>
+
+      <!-- 3. Магазин сайт — 200 грн -->
+      <div class="neon-card rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden">
+        <div class="absolute top-0 right-0 bg-emerald-500 text-black text-[10px] font-black px-3 py-1 rounded-bl-xl uppercase">
+          Популярний
+        </div>
+        <div>
+          <div class="flex justify-between items-start mb-4">
+            <span class="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold">БІЗНЕС / ДОНАТ</span>
+            <span class="text-2xl font-black text-emerald-400">200 грн</span>
+          </div>
+          <h4 class="text-xl font-bold text-white mb-2">Магазин сайт</h4>
+          <p class="text-sm text-emerald-100/70 mb-4">
+            Сайт-магазин з картками товарів, кошиком та відправкою заявок.
+          </p>
+          <ul class="text-xs text-emerald-200/80 space-y-2 mb-6">
+            <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Каталог товарів або привілеїв</li>
+            <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Робочий кошик замовлень</li>
+            <li><i class="fa-solid fa-check text-emerald-400 mr-2"></i>Сповіщення у Discord / Telegram</li>
+          </ul>
+        </div>
+        <button onclick="addToCart('shop-site', 'Магазин сайт', 200, 'Сайт-магазин з кошиком і заявками')" class="w-full py-3 rounded-xl neon-btn text-black font-bold text-sm cursor-pointer">
+          <i class="fa-solid fa-cart-plus mr-1.5"></i> В кошик
+        </button>
+      </div>
+
+      <!-- 4. Потужний сайт — 599 грн -->
+      <div class="neon-card rounded-2xl p-6 flex flex-col justify-between border-emerald-400/50">
+        <div>
+          <div class="flex justify-between items-start mb-4">
+            <span class="px-3 py-1 rounded-lg bg-amber-400/20 text-amber-300 text-xs font-bold">PRO • ВСЕ РОБОТЯЩЕ</span>
+            <span class="text-2xl font-black text-emerald-400">599 грн</span>
+          </div>
+          <h4 class="text-xl font-bold text-white mb-2">Потужний сайт</h4>
+          <p class="text-sm text-emerald-100/70 mb-4">
+            Максимальний функціонал: все роботяще, спецефекти, звуки, адмінка та інтеграції.
+          </p>
+          <ul class="text-xs text-emerald-200/80 space-y-2 mb-6">
+            <li><i class="fa-solid fa-bolt text-amber-400 mr-2"></i>Усе працює на 100% під ключ</li>
+            <li><i class="fa-solid fa-bolt text-amber-400 mr-2"></i>Унікальні анімації, звуки та дизайн</li>
+            <li><i class="fa-solid fa-bolt text-amber-400 mr-2"></i>Повна інтеграція з Discord та фішки</li>
+          </ul>
+        </div>
+        <button onclick="addToCart('power-site', 'Потужний сайт (Все роботяще)', 599, 'Максимальний сайт під ключ')" class="w-full py-3 rounded-xl neon-btn text-black font-bold text-sm cursor-pointer">
+          <i class="fa-solid fa-cart-plus mr-1.5"></i> В кошик
+        </button>
+      </div>
+
+      <!-- 5. Недоступний Бета сервер -->
+      <div id="betaCard" onclick="triggerBetaError()" class="locked-card rounded-2xl p-6 flex flex-col justify-between relative">
+        <div>
+          <div class="flex justify-between items-start mb-4">
+            <span class="px-3 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-bold">
+              <i class="fa-solid fa-lock mr-1"></i> НЕДОСТУПНО
+            </span>
+            <span class="text-lg font-black text-red-400/80">В РОЗРОБЦІ</span>
+          </div>
+          <h4 class="text-xl font-bold text-red-200 mb-2">Бета сервер</h4>
+          <p class="text-sm text-red-200/60 mb-4">
+            Ця функція ще не працює і знаходиться на стадії тестування. Зайти або купити поки неможливо.
+          </p>
+          <div class="p-3 rounded-xl bg-red-950/50 border border-red-500/20 text-xs text-red-300/80">
+            <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Статус: Сервер вимкнено (Бета-тест)
+          </div>
+        </div>
+        <button type="button" class="mt-6 w-full py-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-300 font-bold text-sm cursor-not-allowed">
+          <i class="fa-solid fa-ban mr-1.5"></i> Ще не працює
+        </button>
+      </div>
+
+      <!-- 6. Ава на вибір -->
+      <div class="neon-card rounded-2xl p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-start mb-4">
+            <span class="px-3 py-1 rounded-lg bg-purple-500/20 text-purple-300 text-xs font-bold">ДИЗАЙН</span>
+            <span class="text-2xl font-black text-emerald-400">50 грн</span>
+          </div>
+          <h4 class="text-xl font-bold text-white mb-2">Ава на вибір</h4>
+          <p class="text-sm text-emerald-100/70 mb-4">
+            Крута аватарка для Discord, YouTube, TikTok або твого профілю.
+          </p>
+
+          <!-- Кнопка відкриття списку -->
+          <button type="button" onclick="toggleAvaOptions()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 font-bold text-sm flex items-center justify-between transition cursor-pointer mb-3">
+            <span><i class="fa-solid fa-palette mr-2"></i>Вибрати стиль ави</span>
+            <i id="avaArrow" class="fa-solid fa-chevron-down transition-transform"></i>
+          </button>
+
+          <!-- Випадаючий список + поле На бажання -->
+          <div id="avaOptionsBox" class="hidden space-y-3 mb-4 p-3 rounded-xl bg-black/40 border border-emerald-500/25">
+            <div>
+              <label class="block text-xs text-emerald-300 mb-1 font-semibold">Обери стиль зі списку:</label>
+              <select id="avaStyleSelect" class="w-full bg-[#04180d] border border-emerald-500/40 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400">
+                <option value="Неон / Кіберпанк">⚡ Неон / Кіберпанк</option>
+                <option value="Аніме стиль">🔥 Аніме стиль</option>
+                <option value="3D / Ігровий (Minecraft / Roblox)">🎮 3D / Ігровий стиль</option>
+                <option value="Темний мінімалізм">🖤 Темний мінімалізм</option>
+                <option value="Зимова / Новорічна ава">❄️ Зимова / Новорічна ава</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-emerald-300 mb-1 font-semibold">На бажання (що додати/зробити):</label>
+              <input type="text" id="avaCustomWish" placeholder="Напр.: нік monser23, зелений фон..." class="w-full bg-[#04180d] border border-emerald-500/40 rounded-lg px-3 py-2 text-xs text-white placeholder-emerald-600 focus:outline-none focus:border-emerald-400" />
+            </div>
+          </div>
+        </div>
+
+        <button onclick="addAvaToCart()" class="w-full py-3 rounded-xl neon-btn text-black font-bold text-sm cursor-pointer">
+          <i class="fa-solid fa-cart-plus mr-1.5"></i> Додати аву в кошик
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Виїзний Кошик (Drawer) -->
+  <div id="cartOverlay" onclick="toggleCart(false)" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden transition-opacity"></div>
+  <aside id="cartDrawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-[#04160c] border-l border-emerald-500/30 z-50 transform translate-x-full transition-transform duration-300 flex flex-col justify-between p-6 shadow-2xl">
+    
+    <!-- Верх кошика -->
+    <div>
+      <div class="flex items-center justify-between pb-4 border-b border-emerald-500/20">
+        <h3 class="text-xl font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-cart-shopping text-emerald-400"></i> Твій кошик
+        </h3>
+        <button onclick="toggleCart(false)" class="w-9 h-9 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-300 flex items-center justify-center cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Список товарів у кошику -->
+      <div id="cartItemsContainer" class="mt-4 space-y-3 max-h-[38vh] overflow-y-auto pr-1">
+        <!-- Сюди рендеряться товари -->
+      </div>
+    </div>
+
+    <!-- Низ кошика: Введення Discord ніку та оплата -->
+    <div class="pt-4 border-t border-emerald-500/25 space-y-4">
+      <div class="flex justify-between items-center text-lg font-black">
+        <span class="text-emerald-200">Разом до сплати:</span>
+        <span id="cartTotalPrice" class="text-2xl text-emerald-400 neon-text">0 грн</span>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-emerald-300 mb-1.5">
+          <i class="fa-brands fa-discord mr-1"></i> Твій нік у Discord (обов'язково):
+        </label>
+        <input type="text" id="buyerDiscordNick" placeholder="Наприклад: monser23" class="w-full bg-[#020d07] border border-emerald-500/40 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-emerald-700 focus:outline-none focus:border-emerald-400" />
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-emerald-300 mb-1.5">
+          <i class="fa-solid fa-pen mr-1"></i> Коментар або побажання (необов'язково):
+        </label>
+        <input type="text" id="buyerComment" placeholder="Опиши коротко, що хочеш..." class="w-full bg-[#020d07] border border-emerald-500/40 rounded-xl px-3.5 py-2 text-xs text-white placeholder-emerald-700 focus:outline-none focus:border-emerald-400" />
+      </div>
+
+      <button id="checkoutBtn" onclick="submitOrder()" class="w-full py-3.5 rounded-xl neon-btn text-black font-black text-base flex items-center justify-center gap-2 cursor-pointer">
+        <i class="fa-solid fa-paper-plane"></i> Оплатити та відправити заявку
+      </button>
+    </div>
+  </aside>
+
+  <!-- Модальне вікно Адмін-панелі (тільки для тебе) -->
+  <div id="adminModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="bg-[#051a0f] border border-emerald-500/40 rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-4 border-b border-emerald-500/20 mb-4">
+        <h3 class="text-lg font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-emerald-400"></i> Панель керування заявками (Власник)
+        </h3>
+        <button onclick="closeAdminModal()" class="text-emerald-400 hover:text-white cursor-pointer">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Екран входу по паролю -->
+      <div id="adminLoginView" class="space-y-4 py-4">
+        <p class="text-sm text-emerald-200/80">Введи секретний пароль адміністратора, щоб переглядати та приймати заявки:</p>
+        <input type="password" id="adminPassInput" placeholder="Пароль (за замовчуванням: admin2026)" class="w-full bg-[#020d07] border border-emerald-500/40 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-400" />
+        <button onclick="checkAdminLogin()" class="w-full py-3 rounded-xl neon-btn text-black font-bold text-sm cursor-pointer">
+          Увійти в панель
+        </button>
+      </div>
+
+      <!-- Вміст Адмін-панелі після входу -->
+      <div id="adminDashboardView" class="hidden space-y-5">
+        <div class="flex flex-wrap gap-2 justify-between items-center bg-black/30 p-3 rounded-xl border border-emerald-500/20">
+          <span class="text-xs text-emerald-300"><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Discord Webhook підключено</span>
+          <button onclick="logoutAdmin()" class="text-xs text-red-400 hover:underline cursor-pointer">Вийти</button>
+        </div>
+
+        <div>
+          <h4 class="text-sm font-bold text-white mb-3">Останні заявки з цього браузера:</h4>
+          <div id="adminOrdersList" class="space-y-3">
+            <!-- Список заявок -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Спливаюче сповіщення (Toast) -->
+  <div id="toastBox" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300">
+    <div id="toastContent" class="px-5 py-3 rounded-xl bg-[#062414] border border-emerald-400 text-white text-sm font-bold shadow-[0_0_20px_rgba(16,185,129,0.5)] flex items-center gap-2.5">
+      <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+      <span id="toastText">Повідомлення</span>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. НАЛАШТУВАННЯ DISCORD WEBHOOK ТА АДМІНКИ
+    // ==========================================
+    const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1572246208838111304/aTw6_zpLB1NoY6qas2tWHUlus1czNGp-3OdScCBXLjA5LUFMODI4RCkrLt7mIC7-y6Jp";
+    const ADMIN_PASSWORD = "admin2026";
+
+    let cart = [];
+    let ordersHistory = JSON.parse(localStorage.getItem("neoweb_orders") || "[]");
+    let soundEnabled = true;
+
+    // ==========================================
+    // 2. ЗВУКОВІ ЕФЕКТИ (Web Audio API)
+    // ==========================================
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      if (audioCtx.state === "suspended") audioCtx.resume();
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (type === "click") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(780, now + 0.08);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      } else if (type === "add") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(660, now + 0.07);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } else if (type === "error") {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.linearRampToValueAtTime(110, now + 0.22);
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+        osc.start(now);
+        osc.stop(now + 0.24);
+      } else if (type === "success") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.1);
+        osc.frequency.setValueAtTime(783.99, now + 0.2);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const icon = document.getElementById("soundIcon");
+      icon.className = soundEnabled ? "fa-solid fa-volume-high text-sm" : "fa-solid fa-volume-xmark text-sm text-red-400";
+      if (soundEnabled) playSound("click");
+    }
+
+    // ==========================================
+    // 3. СПОВІЩЕННЯ (TOAST) ТА БЕТА-СЕРВЕР
+    // ==========================================
+    let toastTimeout;
+    function showToast(msg, isError = false) {
+      const box = document.getElementById("toastBox");
+      const content = document.getElementById("toastContent");
+      const icon = document.getElementById("toastIcon");
+      const text = document.getElementById("toastText");
+
+      text.textContent = msg;
+      if (isError) {
+        content.className = "px-5 py-3 rounded-xl bg-[#26080c] border border-red-500 text-red-200 text-sm font-bold shadow-[0_0_20px_rgba(239,68,68,0.5)] flex items-center gap-2.5";
+        icon.className = "fa-solid fa-circle-xmark text-red-400";
+      } else {
+        content.className = "px-5 py-3 rounded-xl bg-[#062414] border border-emerald-400 text-white text-sm font-bold shadow-[0_0_20px_rgba(16,185,129,0.5)] flex items-center gap-2.5";
+        icon.className = "fa-solid fa-circle-check text-emerald-400";
+      }
+
+      box.classList.remove("opacity-0", "translate-y-4");
+      box.classList.add("opacity-100", "translate-y-0");
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        box.classList.remove("opacity-100", "translate-y-0");
+        box.classList.add("opacity-0", "translate-y-4");
+      }, 3000);
+    }
+
+    function triggerBetaError() {
+      playSound("error");
+      const card = document.getElementById("betaCard");
+      card.classList.remove("shake-anim");
+      void card.offsetWidth;
+      card.classList.add("shake-anim");
+      showToast("Бета сервер ще не працює і недоступний!", true);
+    }
+
+    // ==========================================
+    // 4. ВИБІР АВАТАРКИ ТА ЛОГІКА КОШИКА
+    // ==========================================
+    function toggleAvaOptions() {
+      playSound("click");
+      const box = document.getElementById("avaOptionsBox");
+      const arrow = document.getElementById("avaArrow");
+      box.classList.toggle("hidden");
+      arrow.classList.toggle("rotate-180");
+    }
+
+    function addAvaToCart() {
+      const style = document.getElementById("avaStyleSelect").value;
+      const wish = document.getElementById("avaCustomWish").value.trim();
+      const desc = wish ? `Стиль: ${style} \vert{} Побажання: ${wish}` : `Стиль: ${style}`; addToCart("ava-" + Date.now(), "Ава на вибір", 50, desc); }  function addToCart(id, name, price, desc) { playSound("add"); const existing = cart.find(item => item.id === id); if (existing) { existing.qty += 1; } else { cart.push({ id, name, price, desc, qty: 1 }); } renderCart(); showToast(`Додано в кошик: ${name}`);
+    }
+
+    function removeFromCart(index) {
+      playSound("click");
+      cart.splice(index, 1);
+      renderCart();
+    }
+
+    function toggleCart(open) {
+      playSound("click");
+      const overlay = document.getElementById("cartOverlay");
+      const drawer = document.getElementById("cartDrawer");
+      if (open) {
+        overlay.classList.remove("hidden");
+        drawer.classList.remove("translate-x-full");
+      } else {
+        overlay.classList.add("hidden");
+        drawer.classList.add("translate-x-full");
+      }
+    }
+
+    function renderCart() {
+      const container = document.getElementById("cartItemsContainer");
+      const badge = document.getElementById("cartBadge");
+      const totalEl = document.getElementById("cartTotalPrice");
+
+      let totalQty = 0;
+      let totalPrice = 0;
+
+      if (cart.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-10 text-emerald-400/50">
+            <i class="fa-solid fa-basket-shopping text-4xl mb-2"></i>
+            <p class="text-sm">Кошик поки порожній</p>
+          </div>
+        `;
+      } else {
+        container.innerHTML = cart.map((item, idx) => {
+          totalQty += item.qty;
+          totalPrice += item.price * item.qty;
+          return `
+            <div class="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/25 flex justify-between items-center gap-3">
+              <div>
+                <h5 class="text-sm font-bold text-white">${item.name} <span class="text-emerald-400">x${item.qty}</span></h5>
+                <p class="text-[11px] text-emerald-200/70">${item.desc}</p>
+                <span class="text-xs font-black text-emerald-400">${item.price * item.qty} грн</span>
+              </div>
+              <button onclick="removeFromCart(${idx})" class="w-8 h-8 rounded-lg bg-red-950/70 hover:bg-red-900 text-red-400 flex items-center justify-center cursor-pointer">
+                <i class="fa-solid fa-trash text-xs"></i>
+              </button>
+            </div>
+          `;
+        }).join("");
+      }
+
+      badge.textContent = totalQty;
+      totalEl.textContent = `${totalPrice} грн`;
+    }
+
+    // ==========================================
+    // 5. ВІДПРАВКА ЗАМОВЛЕННЯ У DISCORD
+    // ==========================================
+    async function submitOrder() {
+      if (cart.length === 0) {
+        playSound("error");
+        showToast("Спочатку додай щось у кошик!", true);
+        return;
+      }
+
+      const discordNick = document.getElementById("buyerDiscordNick").value.trim();
+      const comment = document.getElementById("buyerComment").value.trim();
+
+      if (!discordNick) {
+        playSound("error");
+        showToast("Вкажи свій нік у Discord!", true);
+        document.getElementById("buyerDiscordNick").focus();
+        return;
+      }
+
+      const btn = document.getElementById("checkoutBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Відправка заявки...`;
+
+      const orderId = Math.floor(1000 + Math.random() * 9000);
+      const totalSum = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+      const itemsText = cart.map((item, i) => `${i + 1}. **${item.name}** (x${item.qty}) — \`${item.price * item.qty} грн\`\n   └ *${item.desc}*`).join("\n");  const payload = { username: "NeoWeb Заявки", embeds: [ { title: `🛒 Нова заявка #${orderId} з сайту!`,
+            color: 1096065,
+            fields: [
+              { name: "👤 Замовник (Discord):", value: `\`${discordNick}\``, inline: true },
+              { name: "💰 Сума до сплати:", value: `**${totalSum} грн**`, inline: true },
+              { name: "📦 Обрані послуги:", value: itemsText, inline: false },
+              { name: "📝 Коментар / ТЗ:", value: comment || "Без додаткового коментаря", inline: false }
+            ],
+            footer: { text: "Статус: Очікує обробки власником" },
+            timestamp: new Date().toISOString()
+          }
+        ]
+      };
+
+      try {
+        const response = await fetch(DISCORD_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok || response.status === 204) {
+          playSound("success");
+          showToast(`Заявку #${orderId} успішно відправлено в Discord!`);  // Зберігаємо в історію для адмін-панелі ordersHistory.unshift({ id: orderId, nick: discordNick, total: totalSum, items: cart.map(i => `${
